@@ -1,0 +1,73 @@
+library IEEE;
+use IEEE.std_logic_1164.all;
+USE ieee.numeric_std.all;
+
+ENTITY Butterfly_final IS
+
+	PORT( CLOCK : IN STD_LOGIC;
+			START: IN STD_LOGIC;
+			RESET: IN STD_LOGIC;
+			W: IN STD_LOGIC_VECTOR(47 DOWNTO 0);
+			A: IN SIGNED(23 DOWNTO 0);
+			B: IN SIGNED(23 DOWNTO 0);
+			A1:OUT SIGNED(23 DOWNTO 0);
+			B1: OUT SIGNED(23 DOWNTO 0);
+			DONE: OUT STD_LOGIC
+			);
+END Butterfly_final;
+
+ARCHITECTURE Behaviour OF Butterfly_final IS
+
+COMPONENT butterfly_dp IS
+
+	PORT( CLOCK : IN STD_LOGIC;
+			IN_A, IN_B: IN SIGNED (23 DOWNTO 0); --REGISTER FILE AB
+			ADDR_IN: IN STD_LOGIC_VECTOR (1 DOWNTO 0); --REGISTER FILE AB  --addr reg1 e reg2 + addr reg3 e reg4
+			ADDR_OUT : IN STD_LOGIC_VECTOR(3 DOWNTO 0); --REGISTER FILE AB --addr uscita1 + addr uscita2
+			RST_RF, LE_RF	 : IN STD_LOGIC; --REGISTER FILE AB
+			Wi, Wr : IN SIGNED (23 DOWNTO 0); --REGISTER FILE W
+			LE_W, RST_W : IN STD_LOGIC; --REGISTER FILE W 
+			ADDR_OUTW : IN STD_LOGIC; --REGISTER FILE W
+			MPY_SHn, RST_MULT: IN STD_LOGIC; --MOLTIPLICATORE
+			RST_SH, LE_SH : IN STD_LOGIC; --REGISTRO USCITA SHIFT
+			RST_MPY, LE_MPY: IN STD_LOGIC;--REGISTRO USCITA MOLTIPLICATORE
+			MUX_SUM: IN STD_LOGIC; --MUX INGRESSO SOMMATORE
+			MUX_SUB1: IN STD_LOGIC; --MUX INGRESSO1 SOTTRATTORE
+			MUX_SUB2: IN STD_LOGIC_VECTOR(1 DOWNTO 0); --MUX INGRESSO2 SOTTRATTORE
+			RST_SUB, LE_SUB: IN STD_LOGIC; --REGISTRO USCITA SOTTRATTORE
+			RST_SUM, LE_SUM: IN STD_LOGIC; --REGISTRO USCITA SOMMATORE
+			RST_RNDREG, LE_RNDREG: IN STD_LOGIC; --REG PER ROUNDING
+			MUX_ROUND, EN_ROUND: IN STD_LOGIC; --ROM ROUNDING + MUX INGRESSO
+			RST_A,LE_A: IN STD_LOGIC;
+			RST_A1,LE_A1: IN STD_LOGIC;
+			RST_B,LE_B: IN STD_LOGIC;
+			OUT_A, OUT_B : OUT SIGNED (23 DOWNTO 0));
+END COMPONENT;
+
+COMPONENT CU_Butterfly IS
+PORT       (START            : IN STD_LOGIC;
+				RESET           : IN STD_LOGIC;
+				DONE 				: OUT STD_LOGIC;
+				CLOCK 			:IN STD_LOGIC;
+				COMMAND        : OUT STD_LOGIC_VECTOR(24 DOWNTO 0));
+END COMPONENT;
+
+SIGNAL w_re,w_im: SIGNED(23 DOWNTO 0);
+SIGNAL command: STD_LOGIC_VECTOR(24 DOWNTO 0);
+
+BEGIN
+w_re<=SIGNED(W(47 DOWNTO 24));
+w_im<=SIGNED(W(23 DOWNTO 0));
+
+datapath: butterfly_dp PORT MAP(CLOCK=>CLOCK, IN_A=>A, IN_B=>B, ADDR_IN=>command(23 DOWNTO 22), ADDR_OUT=> command(21 DOWNTO 18), 
+										  RST_RF=>command(24), LE_RF=>command(17), Wi=>w_im , Wr=>w_re , LE_W=>command(16), RST_W=>command(24), 
+										  ADDR_OUTW=>command(15), MPY_SHn=>command(14), RST_MULT=>command(24), RST_SH=>command(24),
+										  LE_SH=>command(13), RST_MPY=>command(24), LE_MPY=>command(12), MUX_SUM=>command(11), MUX_SUB1=>command(10),
+										  MUX_SUB2=>command(9 DOWNTO 8), RST_SUB=>command(24), LE_SUB=>command(7), RST_SUM=>command(24), LE_SUM=>command(6),
+										  MUX_ROUND=>command(5), EN_ROUND=>command(4), RST_RNDREG=>command(24), LE_RNDREG=>command(3),
+										  RST_A=>command(24), LE_A=>command(2), RST_A1=>command(24), 
+										  LE_A1=>command(1), RST_B=>command(24), LE_B=>command(0), OUT_A=>A1, OUT_B=>B1);
+										   
+cu : CU_Butterfly PORT MAP(START=>START, RESET=>RESET, CLOCK=>CLOCK, DONE=>DONE, COMMAND=>command);								  
+										  
+END Behaviour;
